@@ -218,3 +218,5 @@ FakesAssemblies/
 GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
+/TreeVisualizer/Scripts/typings/d3/plugins
+/TreeVisualizer/Scripts/typings/d3/d3.d.ts
