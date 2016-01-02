@@ -36,6 +36,14 @@ class TransformationManager {
         this.graphicSize  = graphicSize;
     }
 
+    updateViewportSize(newSize: TwoDimensionData) {
+        this.viewportSize = newSize;
+    }
+
+    updateGraphicSize(newSize: TwoDimensionData) {
+        this.graphicSize = newSize;
+    }
+
     translate(t: [number, number]) {
         var x = this.translation[0] + t[0];
         var y = this.translation[1] + t[1];
@@ -112,11 +120,11 @@ class Canvas {
         this.elem = elem;
     }
 
-    size() {
-        return {
-            width: parseInt(this.elem.style("width")),
-            height: parseInt(this.elem.style("height"))
-        };
+    size(): TwoDimensionData {
+        return new TwoDimensionData(
+            new DimensionData(parseInt(this.elem.style("width"))),
+            new DimensionData(parseInt(this.elem.style("height")))
+        );
     }
 
     registerBehavior(b: Behavior) {
@@ -239,20 +247,25 @@ class Tree implements Transformable {
     }
 }
 
+var canvas;
+var tree;
+
 window.onload = () => {
+    canvas = new Canvas(d3.select("#Graphic"));
+
     d3.json("data.json", (error: any, dataset: any) => {
         if (error) {
             alert("error loading JSON: " + error);
         }
 
-        var canvas = new Canvas(d3.select("#Graphic"));
-        var canvasSize = canvas.size();
-        var canvasDim = new TwoDimensionData(new DimensionData(canvasSize.width), new DimensionData(canvasSize.height));
-
-        var tree = new Tree("#ContainerGroup", dataset, canvasDim);
+        tree = new Tree("#ContainerGroup", dataset, canvas.size());
 
         canvas.registerBehavior(new PanningDragBehavior([tree]));
         // TODO: Zoom behavior
         // TODO: Click behavior? (adding nodes, etc.)
     }); 
+};
+
+window.onresize = () => {
+    tree.transform().updateViewportSize(canvas.size());
 };

@@ -15,15 +15,11 @@ TODO List
 
 ### TLC
 - Split components into logical modules
-- Rethink this whole `TransformationManager` and `Transformable` idea (it's fairly
-  tied to just transforming the canvas, whereas we're using raw SVG translations for
-  the SVG DOM elements)
 - There's some *awful* casting going on throughout. Yikes.
 - Make the parser a little more bulletproof and check assumptions
 - Error handling
 
 ### New functionality
-- Implement bounds on panning behavior
 - Implement zooming
 - Select nodes and edit/add children to them
 - Delete nodes
