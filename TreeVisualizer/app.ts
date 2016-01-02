@@ -1,17 +1,21 @@
 ﻿/// <reference path="Scripts/typings/d3/d3.d.ts" />
 
 class DimensionData {
-    span: number;
-    margins: [number, number];
+    public margins: [number, number] = [0, 0];
 
-    constructor(span: number, margins: [number, number]) {
-        this.span = span;
-        this.margins = margins;
+    constructor(public span: number, margins?: [number, number]) {
+        if (margins) {
+            this.margins = margins;
+        }
     }
 
     adjustedSpan(): number {
-        return this.span - this.margins[0] - this.margins[1];
+        return (this.margins) ? this.span - this.margins[0] - this.margins[1] : this.span;
     }
+}
+
+class TwoDimensionData {
+    constructor(public x: DimensionData, public y: DimensionData) { }
 }
 
 interface Transformable {
@@ -20,15 +24,37 @@ interface Transformable {
 
 class TransformationManager {
     private elem: d3.Selection<Transformable>;
-    private translation: [number, number] = [0,0];
 
-    constructor(transformableElement: d3.Selection<Transformable>) {
-        this.elem = transformableElement;
+    private viewportSize: TwoDimensionData; // TODO: this needs to be updated when the browser window size is updated
+    private graphicSize: TwoDimensionData;
+
+    private translation: [number, number] = [0, 0];
+
+    constructor(transformableElement: d3.Selection<Transformable>, viewportSize: TwoDimensionData, graphicSize: TwoDimensionData) {
+        this.elem         = transformableElement;
+        this.viewportSize = viewportSize;
+        this.graphicSize  = graphicSize;
     }
 
     translate(t: [number, number]) {
         var x = this.translation[0] + t[0];
         var y = this.translation[1] + t[1];
+
+        // Check bounds of the translation
+        var lowBoundAdjuster = (translation: number, lowBound: number, dimension: DimensionData): number => {
+            var limit = lowBound + dimension.margins[0];
+            return (limit < translation) ? limit : translation;
+        };
+        var highBoundAdjuster = (translation: number, highBound: number, dimension: DimensionData): number => {
+            var limit = highBound + dimension.margins[1] - dimension.span;
+            return (limit > translation) ? limit : translation;
+        };
+
+        x = lowBoundAdjuster(x, 0, this.graphicSize.x);
+        x = highBoundAdjuster(x, this.viewportSize.x.adjustedSpan(), this.graphicSize.x);
+
+        y= lowBoundAdjuster(y, 0, this.graphicSize.y);
+        y = highBoundAdjuster(y, this.viewportSize.y.adjustedSpan(), this.graphicSize.y);
 
         this.translation = [x, y];
         this.elem.attr("transform", "translate(" + this.translation + ")");
@@ -74,12 +100,11 @@ class PanningDragBehavior extends BaseDragBehavior {
     // TODO: This behavior stuff is full of some awful casting and such right now. Can this be refactored with generics maybe?
         (<PanningDragBehavior>self).affected.forEach((value: Transformable, index: number, array: Transformable[]) => {
             value.transform().translate([event.dx, event.dy]);
-            // TODO: Need to implement bounding on the panning so we don't end up panning ourselves offscreen
         });
     }
 }
 
-class Graphic {
+class Canvas {
     private elem: d3.Selection<any>;
     private behaviors = new Array<Behavior>();
 
@@ -165,24 +190,29 @@ class Tree implements Transformable {
     private vis: d3.Selection<any>;
     private transformManager: TransformationManager;
 
-    constructor(xDim: DimensionData, yDim: DimensionData, treeGroup: string) {
+    constructor(treeGroup: string, data: any, viewportSize: TwoDimensionData) {
         this.t = d3.layout.tree();
         this.vis = d3.select(treeGroup);
-        this.transformManager = new TransformationManager(this.vis);
 
-        this.t.size([yDim.adjustedSpan(), xDim.adjustedSpan()]); // size the tree initially to fit in the dimensions
-        this.transform().translate([xDim.margins[0], yDim.margins[0]]); // translate to the initial margins
-    }
-
-    transform(): TransformationManager {
-        return this.transformManager;
-    }
-
-    initializeRoot(data: any) {
+        // Parse the data into the tree root
         this.root = TreeNode.fromJson(data);
 
+        // Calculate a size for our tree graphic based on the depth/breadth of the tree
+        // TODO - calculate something that will give us a reasonable maximum size. For now, just hardcode.
+        var graphicSize = new TwoDimensionData(new DimensionData(1920, [20, 20]), new DimensionData(1080, [120, 120]));
+        this.t.size([graphicSize.x.adjustedSpan(), graphicSize.y.adjustedSpan()]); // size the tree
+
+        // Initialize our transformation manager to handle panning and scaling, respecting the viewport and graphic sizes
+        this.transformManager = new TransformationManager(this.vis, viewportSize, graphicSize);
+
+        // Perform initial transformations
+        this.transform().translate([graphicSize.x.margins[0], graphicSize.y.margins[0]]);
+
+        // Update the drawing
         this.update();
     }
+
+    transform(): TransformationManager { return this.transformManager; }
 
     update() {
         // Compute the new tree layout
@@ -210,20 +240,19 @@ class Tree implements Transformable {
 }
 
 window.onload = () => {
-    var graphic = new Graphic(d3.select("#Graphic"));
+    d3.json("data.json", (error: any, dataset: any) => {
+        if (error) {
+            alert("error loading JSON: " + error);
+        }
 
-    var graphicSize = graphic.size();
-    var xDimensions = new DimensionData(graphicSize.width,  [20, 20]);
-    var yDimensions = new DimensionData(graphicSize.height, [120, 120]);
+        var canvas = new Canvas(d3.select("#Graphic"));
+        var canvasSize = canvas.size();
+        var canvasDim = new TwoDimensionData(new DimensionData(canvasSize.width), new DimensionData(canvasSize.height));
 
-    var tree = new Tree(xDimensions, yDimensions, "#ContainerGroup");
-      
-    graphic.registerBehavior(new PanningDragBehavior([tree]));
-    // TODO: Zoom behavior
-    // TODO: Click behavior? (adding nodes, etc.)
+        var tree = new Tree("#ContainerGroup", dataset, canvasDim);
 
-    d3.json("data.json", (err, data) => {
-        // TODO: check error
-        tree.initializeRoot(data);
-    });
+        canvas.registerBehavior(new PanningDragBehavior([tree]));
+        // TODO: Zoom behavior
+        // TODO: Click behavior? (adding nodes, etc.)
+    }); 
 };
