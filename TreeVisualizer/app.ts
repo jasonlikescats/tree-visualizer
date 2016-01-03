@@ -25,10 +25,11 @@ interface Transformable {
 class TransformationManager {
     private elem: d3.Selection<Transformable>;
 
-    private viewportSize: TwoDimensionData; // TODO: this needs to be updated when the browser window size is updated
+    private viewportSize: TwoDimensionData;
     private graphicSize: TwoDimensionData;
 
-    private translation: [number, number] = [0, 0];
+    private translation = [0, 0];
+    private scale = 1;
 
     constructor(transformableElement: d3.Selection<Transformable>, viewportSize: TwoDimensionData, graphicSize: TwoDimensionData) {
         this.elem         = transformableElement;
@@ -44,44 +45,106 @@ class TransformationManager {
         this.graphicSize = newSize;
     }
 
+    // Updates a single property in the transform matrix
+    // e.g. updateTransform("translate", [1,2]) on an svg with
+    // original transform attribute as "translate(0,0) scale(3)"
+    // will result in "translate(1,2) scale(3)".
+    private updateTransform(propName: string, propValue: number[]) {
+        var transformation = this.elem.attr("transform") || "";
+
+        var propPattern = new RegExp(propName + "\\([0-9, \-.]*\\)");
+        
+        var newValue = propName + "(" + propValue + ")";
+
+        if (transformation.search(propPattern) == -1) {
+            transformation += " " + newValue;
+        } else {
+            transformation = transformation.replace(propPattern, newValue);
+        }
+
+        this.elem.attr("transform", transformation);
+    }
+
+    private scaledGraphicSize(): TwoDimensionData {
+        return new TwoDimensionData(
+            new DimensionData(this.graphicSize.x.span * this.scale),
+            new DimensionData(this.graphicSize.y.span * this.scale));
+    }
+
+    private translationLowBoundAdjuster(translation: number, lowBound: number, dimension: DimensionData): number {
+        var limit = lowBound + dimension.margins[0];
+        return (limit < translation) ? limit : translation;
+    }
+
+    private translationHighBoundAdjuster(translation: number, highBound: number, dimension: DimensionData): number {
+        var limit = highBound + dimension.margins[1] - dimension.span;
+        return (limit > translation) ? limit : translation;
+    }
+
     translate(t: [number, number]) {
         var x = this.translation[0] + t[0];
         var y = this.translation[1] + t[1];
 
-        // Check bounds of the translation
-        var lowBoundAdjuster = (translation: number, lowBound: number, dimension: DimensionData): number => {
-            var limit = lowBound + dimension.margins[0];
-            return (limit < translation) ? limit : translation;
-        };
-        var highBoundAdjuster = (translation: number, highBound: number, dimension: DimensionData): number => {
-            var limit = highBound + dimension.margins[1] - dimension.span;
-            return (limit > translation) ? limit : translation;
-        };
+        var graphicSize = this.scaledGraphicSize();
 
-        x = lowBoundAdjuster(x, 0, this.graphicSize.x);
-        x = highBoundAdjuster(x, this.viewportSize.x.adjustedSpan(), this.graphicSize.x);
+        // Adjust to boundary max/mins
+        x = this.translationLowBoundAdjuster (x, 0,                                  graphicSize.x);
+        x = this.translationHighBoundAdjuster(x, this.viewportSize.x.adjustedSpan(), graphicSize.x);
 
-        y= lowBoundAdjuster(y, 0, this.graphicSize.y);
-        y = highBoundAdjuster(y, this.viewportSize.y.adjustedSpan(), this.graphicSize.y);
+        y = this.translationLowBoundAdjuster (y, 0,                                  graphicSize.y);
+        y = this.translationHighBoundAdjuster(y, this.viewportSize.y.adjustedSpan(), graphicSize.y);
 
         this.translation = [x, y];
-        this.elem.attr("transform", "translate(" + this.translation + ")");
+        this.updateTransform("translate", this.translation);
+    }
+
+    zoom(focalCenter: [number, number], scale: number) {
+        if (scale === this.scale)
+            return;
+
+        this.scale = scale;
+
+        this.updateTransform("scale", [scale]);
+        //this.translate(focalCenter);
     }
 }
 
 interface Behavior {
-    name: string;
-
     attach(target: d3.Selection<any>): void;
     invoke(event: d3.BaseEvent, self: Behavior): void;
 }
 
+class BaseZoomBehavior implements Behavior {
+    private attachee: d3.behavior.Zoom<{}>;
+    private affected: Array<Transformable>;
+
+    constructor(affectedTransformables: Array<Transformable>) {
+        this.affected = affectedTransformables;
+
+        this.attachee = d3.behavior.zoom().scaleExtent([0,10]).on("zoom", () => { // TODO: allow negative (this breaks the scaled graphic size calculation right now though)
+            if (d3.event.type !== "zoom")
+                return;
+
+            this.invoke(<d3.ZoomEvent>d3.event, this);
+        });
+    }
+
+    attach(target: d3.Selection<any>): void {
+        target.call(this.attachee);
+    }
+
+    invoke(event: d3.ZoomEvent, self: Behavior): void {
+        (<BaseZoomBehavior>self).affected.forEach((value: Transformable, index: number, array: Transformable[]) => {
+            value.transform().zoom(event.translate, event.scale);
+        });
+    }
+}
+
 class BaseDragBehavior implements Behavior { // TODO: abstract away the "drag" specific stuff into the base interface/abstract class
     private attachee: d3.behavior.Drag<{}>;
-    name: string = "drag";
 
     constructor() {
-        this.attachee = d3.behavior.drag().on(this.name, () => {
+        this.attachee = d3.behavior.drag().on("drag", () => {
             if (d3.event.type !== "drag")
                 return;
 
@@ -261,7 +324,7 @@ window.onload = () => {
         tree = new Tree("#ContainerGroup", dataset, canvas.size());
 
         canvas.registerBehavior(new PanningDragBehavior([tree]));
-        // TODO: Zoom behavior
+        canvas.registerBehavior(new BaseZoomBehavior([tree]));
         // TODO: Click behavior? (adding nodes, etc.)
     }); 
 };
