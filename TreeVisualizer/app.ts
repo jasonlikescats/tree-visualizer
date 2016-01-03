@@ -39,6 +39,9 @@ class TransformationManager {
 
     updateViewportSize(newSize: TwoDimensionData) {
         this.viewportSize = newSize;
+
+        // ensure our translation stays inbounds
+        this.translate([0, 0]);
     }
 
     updateGraphicSize(newSize: TwoDimensionData) {
@@ -114,69 +117,58 @@ class TransformationManager {
     }
 }
 
+// This behavior dispatcher allows for multiple Transformable types to be tied to a single behavior
 interface Behavior {
     attach(target: d3.Selection<any>): void;
-    invoke(event: d3.BaseEvent, self: Behavior): void;
+};
+
+class BehaviorBase<BehaviorT extends (sel: d3.Selection<any>, ...args: any[]) => any, EventT extends d3.BaseEvent> implements Behavior {
+    private attachee: BehaviorT;
+    private affected: Array<Transformable>;
+    private handler: (event: EventT, elem: Transformable) => void;
+
+    constructor(affectedTransformables: Array<Transformable>, attachee: BehaviorT, handler: (event: EventT, elem: Transformable) => void) {
+        this.attachee = attachee;
+        this.affected = affectedTransformables;
+        this.handler  = handler;
+    }
+
+    attach(target: d3.Selection<any>): void {
+        target.call(this.attachee);
+    }
+
+    protected invoke(event: d3.BaseEvent, self: BehaviorBase<BehaviorT, EventT>): void {
+        self.affected.forEach((value: Transformable, index: number, array: Transformable[]) => {
+            self.handler(<EventT>event, value);
+        });
+    }
 }
 
-class BaseZoomBehavior implements Behavior {
-    private attachee: d3.behavior.Zoom<{}>;
-    private affected: Array<Transformable>;
-
+class ZoomBehavior extends BehaviorBase<d3.behavior.Zoom<{}>, d3.ZoomEvent> {
     constructor(affectedTransformables: Array<Transformable>) {
-        this.affected = affectedTransformables;
-
-        this.attachee = d3.behavior.zoom().scaleExtent([0,10]).on("zoom", () => { // TODO: allow negative (this breaks the scaled graphic size calculation right now though)
-            if (d3.event.type !== "zoom")
-                return;
-
+        var attachee = d3.behavior.zoom().scaleExtent([0, 10]).on("zoom", () => {
             this.invoke(<d3.ZoomEvent>d3.event, this);
         });
-    }
 
-    attach(target: d3.Selection<any>): void {
-        target.call(this.attachee);
-    }
+        var handler = (event: d3.ZoomEvent, elem: Transformable) => {
+            elem.transform().zoom(event.translate, event.scale);
+        };
 
-    invoke(event: d3.ZoomEvent, self: Behavior): void {
-        (<BaseZoomBehavior>self).affected.forEach((value: Transformable, index: number, array: Transformable[]) => {
-            value.transform().zoom(event.translate, event.scale);
-        });
+        super(affectedTransformables, attachee, handler);
     }
 }
 
-class BaseDragBehavior implements Behavior { // TODO: abstract away the "drag" specific stuff into the base interface/abstract class
-    private attachee: d3.behavior.Drag<{}>;
-
-    constructor() {
-        this.attachee = d3.behavior.drag().on("drag", () => {
-            if (d3.event.type !== "drag")
-                return;
-
+class DragBehavior extends BehaviorBase<d3.behavior.Drag<{}>, d3.DragEvent> {
+    constructor(affectedTransformables: Array<Transformable>) {
+        var attachee = d3.behavior.drag().on("drag", () => { 
             this.invoke(<d3.DragEvent>d3.event, this);
         });
-    }
 
-    attach(target: d3.Selection<any>): void {
-        target.call(this.attachee);
-    }
+        var handler = (event: d3.DragEvent, elem: Transformable) => {
+            elem.transform().translate([event.dx, event.dy]);
+        };
 
-    invoke(event: d3.DragEvent, self: Behavior): void { /*nop*/ }
-}
-
-class PanningDragBehavior extends BaseDragBehavior {
-    private affected: Array<Transformable>;
-
-    constructor(affectedTransformables: Array<Transformable>) {
-        this.affected = affectedTransformables;
-        super();
-    }
-
-    invoke(event: d3.DragEvent, self: Behavior): void {
-    // TODO: This behavior stuff is full of some awful casting and such right now. Can this be refactored with generics maybe?
-        (<PanningDragBehavior>self).affected.forEach((value: Transformable, index: number, array: Transformable[]) => {
-            value.transform().translate([event.dx, event.dy]);
-        });
+        super(affectedTransformables, attachee, handler);
     }
 }
 
@@ -328,8 +320,8 @@ window.onload = () => {
 
         tree = new Tree("#ContainerGroup", dataset, canvas.size());
 
-        canvas.registerBehavior(new PanningDragBehavior([tree]));
-        canvas.registerBehavior(new BaseZoomBehavior([tree]));
+        canvas.registerBehavior(new DragBehavior([tree]));
+        canvas.registerBehavior(new ZoomBehavior([tree]));
         // TODO: Click behavior? (adding nodes, etc.)
     }); 
 };
