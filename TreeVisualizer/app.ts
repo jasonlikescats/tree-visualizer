@@ -28,7 +28,7 @@ class TransformationManager {
     private viewportSize: TwoDimensionData;
     private graphicSize: TwoDimensionData;
 
-    private translation = [0, 0];
+    private translation: [number, number] = [0, 0];
     private scale = 1;
 
     constructor(transformableElement: d3.Selection<Transformable>, viewportSize: TwoDimensionData, graphicSize: TwoDimensionData) {
@@ -67,8 +67,8 @@ class TransformationManager {
 
     private scaledGraphicSize(): TwoDimensionData {
         return new TwoDimensionData(
-            new DimensionData(this.graphicSize.x.span * this.scale),
-            new DimensionData(this.graphicSize.y.span * this.scale));
+            new DimensionData(this.graphicSize.x.span * this.scale, this.graphicSize.x.margins),
+            new DimensionData(this.graphicSize.y.span * this.scale, this.graphicSize.y.margins));
     }
 
     private translationLowBoundAdjuster(translation: number, lowBound: number, dimension: DimensionData): number {
@@ -77,7 +77,7 @@ class TransformationManager {
     }
 
     private translationHighBoundAdjuster(translation: number, highBound: number, dimension: DimensionData): number {
-        var limit = highBound + dimension.margins[1] - dimension.span;
+        var limit = highBound - dimension.margins[1] - dimension.span;
         return (limit > translation) ? limit : translation;
     }
 
@@ -87,12 +87,15 @@ class TransformationManager {
 
         var graphicSize = this.scaledGraphicSize();
 
-        // Adjust to boundary max/mins
-        x = this.translationLowBoundAdjuster (x, 0,                                  graphicSize.x);
+        // Adjust to boundary max/mins (you really need to sketch this for it to make any sense). Note
+        // that order matters here; when the viewport is larger than the graphic, out high boundary
+        // constraint will always place us beyond the low boundary restriction, so we'll order it
+        // conveniently so that we don't need to account for the graphic < viewport size case explicitly.
         x = this.translationHighBoundAdjuster(x, this.viewportSize.x.adjustedSpan(), graphicSize.x);
+        x = this.translationLowBoundAdjuster (x, 0, graphicSize.x);
 
-        y = this.translationLowBoundAdjuster (y, 0,                                  graphicSize.y);
         y = this.translationHighBoundAdjuster(y, this.viewportSize.y.adjustedSpan(), graphicSize.y);
+        y = this.translationLowBoundAdjuster (y, 0, graphicSize.y);
 
         this.translation = [x, y];
         this.updateTransform("translate", this.translation);
@@ -105,7 +108,9 @@ class TransformationManager {
         this.scale = scale;
 
         this.updateTransform("scale", [scale]);
-        //this.translate(focalCenter);
+
+        // Ensure our translation stays in the bounds
+        this.translate([0, 0]);
     }
 }
 

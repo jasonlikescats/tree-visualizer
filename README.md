@@ -5,8 +5,8 @@ Overview
 ---
 
 As an attempt to gain a working understanding of d3.js and become comfortable
-fluent in TypeScript, this project is a reimplementation of the core of an example
-provided by mbostock (at https://mbostock.github.io/d3/talk/20111018/tree.html).
+fluent in TypeScript, this project is a reimplementation of the core of an
+[example provided by mbostock](https://mbostock.github.io/d3/talk/20111018/tree.html).
 To keep things interesting a few things will be tweaked and some additional features
 added to make this the core of a tree based data visualization app.
 
