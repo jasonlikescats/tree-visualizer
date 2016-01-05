@@ -24,6 +24,8 @@ module Graphic {
     }
 
     export class TreeNode implements d3.layout.tree.Node {
+        tree: Graphic.Tree;
+
         graphicId: number = null;
         name: string;
 
@@ -34,28 +36,31 @@ module Graphic {
         x: number;
         y: number;
 
-        constructor(name: string, children: Array<TreeNode>) {
+        constructor(name: string, tree: Tree, children?: Array<TreeNode>) {
             this.name = name;
-            this.children = children;
+            this.tree = tree;
+            if (children) {
+                this.children = children;
+            }
         }
 
-        static fromJson(data: any): TreeNode {
+        static fromJson(data: any, tree: Tree): TreeNode {
             // TODO: should ensure only a single root from incoming data
 
             var children = new Array<TreeNode>();
             for (var i: number = 0; (data.children != null) && (i < data.children.length); ++i) {
-                children.push(TreeNode.fromJson(data.children[i]));
+                children.push(TreeNode.fromJson(data.children[i], tree));
             }
 
-            return new TreeNode(data.name, children);
+            return new TreeNode(data.name, tree, children);
         }
 
         static onEnter(selection: d3.selection.Enter<TreeNode>) {
             var nodeGroup = selection
                 .append("svg:g")
                 .attr("class", "node")
-                .attr("transform", (node): string => { return "translate(" + node.x + "," + node.y + ")"; });
-            // TODO: bind a click event here
+                .attr("transform", (node): string => { return "translate(" + node.x + "," + node.y + ")"; })
+                .on("click", (datum: TreeNode, index: number, outerIndex: number): any => { return datum.onClick(); });
 
             nodeGroup
                 .append("svg:circle")
@@ -71,11 +76,24 @@ module Graphic {
         }
 
         static onUpdate(selection) {
-            selection.attr("transform", (node): string => { return "translate(" + node.x + "," + node.y + ")"; });
+            selection
+                .attr("transform", (node): string => {
+                    return "translate(" + node.x + "," + node.y + ")";
+                });
         }
 
         static onExit(selection) {
             selection.remove(); // TODO: test me
+        }
+
+        private onClick() {
+            if (this.children === undefined) {
+                this.children = new Array<TreeNode>();
+            }
+
+            this.children.push(new TreeNode("New Node", this.tree));
+
+            this.tree.update();
         }
     }
 
@@ -93,7 +111,7 @@ module Graphic {
             this.vis = d3.select(treeGroup);
 
             // Parse the data into the tree root
-            this.root = TreeNode.fromJson(data);
+            this.root = TreeNode.fromJson(data, this);
 
             // Calculate a size for our tree graphic based on the depth/breadth of the tree
             // TODO - calculate something that will give us a reasonable maximum size. For now, just hardcode.
@@ -126,14 +144,21 @@ module Graphic {
             nodeSelection.exit().call(TreeNode.onExit);
             nodeSelection.call(TreeNode.onUpdate);
 
-            // Update the node links
+            this.updateNodeLinks(computedNodes);
+        }
+
+        private updateNodeLinks(computedNodes: TreeNode[]) {
             var linkSelection = this.vis.selectAll("path.link")
-                .data(this.t.links(computedNodes), (link) => { return (<TreeNode>link.target).graphicId.toString(); }); // this cast is sketchy
+                .data(this.t.links(computedNodes), (link) => {
+                    return (<TreeNode>link.target).graphicId.toString();
+                });
 
             linkSelection.enter()
                 .insert("svg:path", "g")
                 .attr("class", "link")
                 .attr("d", d3.svg.diagonal());
+
+            linkSelection.attr("d", d3.svg.diagonal());
         }
     }
 }
