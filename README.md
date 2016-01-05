@@ -14,12 +14,10 @@ TODO List
 ---
 
 ### TLC
-- Split components into logical modules
 - Fix zooming to be properly centered around mouse pointer
-- There's some *awful* casting going on throughout. Yikes.
 - Make the parser a little more bulletproof and check assumptions
 - Error handling
 
 ### New functionality
-- Select nodes and edit/add children to them
+- Better customization of nodes (name, etc)
 - Delete nodes
