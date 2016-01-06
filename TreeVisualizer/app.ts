@@ -20,10 +20,11 @@ window.onload = () => {
 
         canvas.registerBehavior(new Behaviors.DragBehavior([tree]));
         canvas.registerBehavior(new Behaviors.ZoomBehavior([tree]));
-        // TODO: Click behavior? (adding nodes, etc.)
     });
 };
 
 window.onresize = () => {
+    if (!tree) return;
+
     tree.transform().updateViewportSize(canvas.size());
 };

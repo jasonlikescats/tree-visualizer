@@ -10,6 +10,12 @@ fluent in TypeScript, this project is a reimplementation of the core of an
 To keep things interesting a few things will be tweaked and some additional features
 added to make this the core of a tree based data visualization app.
 
+Prerequisites
+---
+- d3.js
+- Bootstrap's modal.js
+- jQuery
+
 TODO List
 ---
 
@@ -17,7 +23,5 @@ TODO List
 - Fix zooming to be properly centered around mouse pointer
 - Make the parser a little more bulletproof and check assumptions
 - Error handling
-
-### New functionality
-- Better customization of nodes (name, etc)
-- Delete nodes
+- Center text in circles
+- Fix up the modal dialog editor for specifying node names

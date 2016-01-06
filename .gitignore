@@ -222,3 +222,5 @@ ModelManifest.xml
 /TreeVisualizer/Scripts/typings/d3/plugins
 /TreeVisualizer/Scripts/typings/d3/d3.d.ts
 /TreeVisualizer/Scripts/d3/LICENSE
+/TreeVisualizer/Scripts/typings/jquery
+/TreeVisualizer/Scripts/bootstrap

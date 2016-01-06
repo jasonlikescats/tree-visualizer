@@ -1,5 +1,6 @@
 ﻿/// <reference path="containers.ts" />
 /// <reference path="behaviors.ts" />
+/// <reference path="modalEditor.ts" />
 
 module Graphic {
     export class Canvas {
@@ -87,13 +88,19 @@ module Graphic {
         }
 
         private onClick() {
-            if (this.children === undefined) {
-                this.children = new Array<TreeNode>();
-            }
+            ModalEditor.launchEditor("#node-data-modal", (self: TreeNode) => {
+                // Get the name from the form
+                var name = <string>d3.select("#nodeName").property("value");
 
-            this.children.push(new TreeNode("New Node", this.tree));
+                // TODO: Figure out why this is needed sometimes...
+                if (self.children === undefined) {
+                    self.children = new Array<TreeNode>();
+                }
 
-            this.tree.update();
+                self.children.push(new TreeNode(name, self.tree));
+
+                self.tree.update();
+            }, this);
         }
     }
 
