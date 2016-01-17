@@ -1,4 +1,4 @@
-﻿/// <reference path="Scripts/typings/jquery/jquery.d.ts" />
+﻿/// <reference path="typings/jquery/jquery.d.ts" />
 
 // This is pretty ugly code - the main purpose here is just to contain
 // everything that is jQuery/Bootstrap dependent, since I'm not sold that

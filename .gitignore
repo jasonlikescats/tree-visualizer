@@ -1,10 +1,12 @@
-## JB: These first few are pretty project/TypeScript specific
+## Manage dependencies with Bower and tsd - don't check in vendor scripts
+TreeVisualizer/bower_components/
+TreeVisualizer/typings/
+
+## Ignore generated/built files
 *.js
 *.js.map
-Scripts/*
-web*.config
-packages*.config
-*.csproj
+
+## No need for sln - just a proj will do
 *.sln
 
 ## Ignore Visual Studio temporary files, build results, and

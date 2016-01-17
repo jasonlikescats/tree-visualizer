@@ -90,7 +90,7 @@ module Graphic {
         private onClick() {
             ModalEditor.launchEditor("#node-data-modal", (self: TreeNode) => {
                 // Get the name from the form
-                var name = <string>d3.select("#nodeName").property("value");
+                var name = <string>d3.select("#newNodeName").property("value");
 
                 // TODO: Figure out why this is needed sometimes...
                 if (self.children === undefined) {

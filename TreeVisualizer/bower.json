@@ -1,0 +1,16 @@
+{
+  "name": "TreeVisualizer",
+  "version": "0.0.0",
+  "homepage": "https://github.com/jasonlikescats/tree-visualizer",
+  "authors": [
+    "Jason Brown"
+  ],
+  "main": "index.html",
+  "license": "GPL2",
+  "private": true,
+  "dependencies": {
+    "jquery": "~2.2.0",
+    "d3": "~3.5.12",
+    "bootstrap": "~3.3.6"
+  }
+}
