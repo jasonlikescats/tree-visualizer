@@ -15,6 +15,7 @@ Building & Running
 A Visual Studio 2015 project file is supplied for compiling the TypeScript files. All 3rd
 party dependencies are managed with Bower and tsd. Loading dependencies is a simple process
 by running the following from the project directory (assuming Bower and tsd are installed globally):
+
 1. `bower install`
 2. `tsd reinstall`
 
