@@ -22,22 +22,19 @@
     <script src="app.js"></script>
 </head>
 <body>
-    <h1>TreeVisualizer App</h1>
-
     <div id="SvgContainer">
         <svg id="Graphic">
             <g id="ContainerGroup"></g>
         </svg>
     </div>
 
-
     <div id="node-data-modal" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel">
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
                 <form>
-                    <div class="form-group">
+                    <div id="node-name-form" class="form-group">
                         <!-- note to self: id="nodeName" clashes with a jQuery reserved name -->
-                        <label for="newNodeName">Name</label>
+                        <label for="newNodeName">Create a node:</label>
                         <input type="text" class="form-control" id="newNodeName" value="New Node">
                     </div>
                     <button type="submit" class="btn btn-default">Create</button>

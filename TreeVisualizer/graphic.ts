@@ -65,14 +65,14 @@ module Graphic {
 
             nodeGroup
                 .append("svg:circle")
-                .attr("r", 15)
-                .style("fill", (node: TreeNode): string => { return node.children ? "#fff" : "lightsteelblue"; }); // white fill if has children
+                .attr("r", 50);
 
             nodeGroup
                 .append("svg:text")
+                .attr("class", "nodeNameLine")
+                .attr("text-anchor", "middle")
                 .attr("x", 0)
                 .attr("dy", ".35em")
-                .attr("text-anchor", 0)
                 .text((node): string => { return node.name; });
         }
 
@@ -120,9 +120,10 @@ module Graphic {
             // Parse the data into the tree root
             this.root = TreeNode.fromJson(data, this);
 
-            // Calculate a size for our tree graphic based on the depth/breadth of the tree
-            // TODO - calculate something that will give us a reasonable maximum size. For now, just hardcode.
-            var graphicSize = new Containers.TwoDimensionData(new Containers.DimensionData(1920, [20, 20]), new Containers.DimensionData(1080, [120, 120]));
+            // Size the graphic initially to fit the viewport
+            var graphicSize = new Containers.TwoDimensionData(
+                new Containers.DimensionData(viewportSize.x.adjustedSpan(), [20, 20]),
+                new Containers.DimensionData(viewportSize.y.adjustedSpan(), [120, 20])); // smaller margin on bottom since on top we have to account for y-origin being at center of top circle
             this.t.size([graphicSize.x.adjustedSpan(), graphicSize.y.adjustedSpan()]); // size the tree
 
             // Initialize our transformation manager to handle panning and scaling, respecting the viewport and graphic sizes

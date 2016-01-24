@@ -72,7 +72,7 @@ module Transformations {
             var x = this.translation[0] + t[0];
             var y = this.translation[1] + t[1];
 
-            var graphicSize = this.scaledGraphicSize();
+            var graphicSize = this.graphicSize.applyScale(this.scale);
 
             // Adjust to boundary max/mins (you really need to sketch this for it to make any sense). Note
             // that order matters here; when the viewport is larger than the graphic, out high boundary
@@ -96,7 +96,7 @@ module Transformations {
 
             this.updateTransform("scale", [scale]);
 
-            // Ensure our translation stays in the bounds
+            // Ensure our translation stays in the bounds by forcing an update with no actual change provided
             this.translate([0, 0]);
 
             // TODO: Figure out how to zoom centered on mouse cursor, rather than center of canvas. The translate numbers

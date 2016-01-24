@@ -10,7 +10,7 @@ span {
 
 .node circle {
     cursor: pointer;
-    fill: #fff;
+    fill: lightsteelblue;
     stroke: steelblue;
     stroke-width: 1.5px;
 }
@@ -33,4 +33,8 @@ path.link {
 #Graphic {
     width: 100%;
     height: 100%;
+}
+
+#node-name-form {
+    margin: 10px;
 }

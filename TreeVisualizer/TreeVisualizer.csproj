@@ -38,6 +38,8 @@
     <Content Include="data.json">
       <BrowseToURL>~/data.json</BrowseToURL>
     </Content>
+    <Content Include="bower.json" />
+    <Content Include="tsd.json" />
     <None Include="web.Debug.config">
       <DependentUpon>web.config</DependentUpon>
     </None>

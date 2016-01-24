@@ -22,8 +22,5 @@ by running the following from the project directory (assuming Bower and tsd are 
 TODO List
 ---
 
-- Center text in circles
-- Pretty up the modal dialog editor for specifying node names
+- Make the data JSON parser validate assumptions, and handle errors
 - Fix zooming to be properly centered around mouse pointer
-- Make the parser a little more bulletproof and check assumptions
-- Error handling
